@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../models/sos_status.dart';
 import '../services/app_state.dart';
+import '../services/location_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'chat_screen.dart';
 import 'discovery_screen.dart';
 import 'profile_setup_screen.dart';
@@ -598,9 +600,78 @@ class _AlertCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (beacon.hasLocation) ...[
+                const SizedBox(height: 12),
+                _DirectionsButton(beacon: beacon),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DirectionsButton extends StatefulWidget {
+  const _DirectionsButton({required this.beacon});
+  final SosBeacon beacon;
+
+  @override
+  State<_DirectionsButton> createState() => _DirectionsButtonState();
+}
+
+class _DirectionsButtonState extends State<_DirectionsButton> {
+  final LocationService _location = LocationService();
+  bool _launching = false;
+
+  Future<void> _openMaps() async {
+    setState(() => _launching = true);
+
+    final pos = await _location.getLocationOnce();
+    final destLat = widget.beacon.latitude!;
+    final destLng = widget.beacon.longitude!;
+
+    Uri mapsUri;
+    if (pos != null) {
+      mapsUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1'
+        '&origin=${pos.latitude},${pos.longitude}'
+        '&destination=$destLat,$destLng'
+        '&travelmode=driving',
+      );
+    } else {
+      mapsUri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$destLat,$destLng',
+      );
+    }
+
+    if (await canLaunchUrl(mapsUri)) {
+      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open maps application')),
+      );
+    }
+
+    if (mounted) setState(() => _launching = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_launching) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(8.0),
+        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+      ));
+    }
+    return FilledButton.icon(
+      onPressed: _openMaps,
+      icon: const Icon(Icons.directions_rounded, size: 18),
+      label: const Text('Get Google Maps Directions'),
+      style: FilledButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        backgroundColor: const Color(0xFF1565C0),
+        foregroundColor: Colors.white,
       ),
     );
   }

@@ -427,7 +427,16 @@ class AppState extends ChangeNotifier {
       }
     }
 
-    _peers = await _db.listPeers();
+    final allPeers = await _db.listPeers();
+
+    // Deduplicate peers by display name to prevent the same device appearing twice
+    // (since its endpoint ID might change across reconnects).
+    final Map<String, PeerDevice> uniquePeers = {};
+    for (final p in allPeers) {
+      uniquePeers.putIfAbsent(p.displayName, () => p);
+    }
+    
+    _peers = uniquePeers.values.toList();
     notifyListeners();
   }
 }
