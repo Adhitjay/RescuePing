@@ -36,7 +36,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // First time entering the screen: request permissions (Android) and start transport.
     if (!_permissionsRequested) {
       _permissionsRequested = true;
       Future.microtask(() async {
@@ -48,14 +47,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   Future<void> _requestPermissionsIfNeeded() async {
-
-    // Request ALL permissions the Nearby Connections API needs.
     final statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.bluetoothAdvertise,
-      Permission
-          .location, // ACCESS_FINE_LOCATION — required on ALL Android versions
+      Permission.location,
       Permission.nearbyWifiDevices,
     ].request();
 
@@ -68,7 +64,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
     final discoveryOk = bluetoothOk && locationOk;
 
-    // Check if the Location Services toggle (GPS) is actually ON.
     final locationServiceOn =
         await Permission.locationWhenInUse.serviceStatus ==
         ServiceStatus.enabled;
@@ -84,12 +79,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: const Color(0xFFFF1744),
           content: const Text(
-            'Nearby discovery needs ALL Bluetooth + Location permissions. Please allow them to see other devices.',
+            'ERR: BLUETOOTH/LOCATION PERMISSIONS DENIED.',
+            style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: Colors.black),
           ),
           duration: const Duration(seconds: 6),
           action: permanentlyDenied
-              ? SnackBarAction(label: 'Settings', onPressed: openAppSettings)
+              ? SnackBarAction(label: 'SETTINGS', textColor: Colors.black, onPressed: openAppSettings)
               : null,
         ),
       );
@@ -97,43 +94,36 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: const Color(0xFFFFEA00),
           content: const Text(
-            'Turn ON Location Services (GPS toggle). Nearby Connections requires it for scanning.',
+            'WARN: GPS OFFLINE. ENABLE LOCATION SERVICES.',
+            style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: Colors.black),
           ),
           duration: const Duration(seconds: 5),
           action: SnackBarAction(
-            label: 'Open Settings',
+            label: 'SETTINGS',
+            textColor: Colors.black,
             onPressed: openAppSettings,
           ),
         ),
       );
     }
-
-    debugPrint('Permission statuses: $statuses');
-    debugPrint('Location service on: $locationServiceOn');
   }
 
   Future<void> _onResumed() async {
     if (!mounted) return;
-
-
-    // If we previously detected missing permissions/services, re-check and restart transport.
     if (!_hadMissingPermissions) return;
 
     await _requestPermissionsIfNeeded();
     if (!mounted) return;
 
     final state = context.read<AppState>();
-
-    // Restart transport to pick up newly granted permissions.
     await state.stopTransport();
     await state.startTransport();
   }
 
   void _openChat() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ChatScreen()));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatScreen()));
   }
 
   @override
@@ -145,221 +135,163 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     final discoveredCount = state.peers.length;
     final isRunning = state.transport?.isRunning == true;
 
-    const transportLabel = 'Nearby Connections transport';
+    const transportLabel = 'NEARBY_CONNECTIONS_API';
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 40),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.cover,
-                ),
-              ),
+            Icon(Icons.hub_rounded, color: scheme.primary, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'MESH_TOPOLOGY',
+              style: TextStyle(fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2.0, color: scheme.primary),
             ),
-            const SizedBox(width: 10),
-            const Text('RescuePing Mesh'),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Open Chat',
-            onPressed: _openChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-          ),
-        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: scheme.primary.withValues(alpha: 0.2), height: 1.0),
+        ),
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF111E36),
-                    scheme.surface,
-                    scheme.surface,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _MeshHeroHeader(
-                        nickname: state.nickname ?? '-',
-                        transportLabel: transportLabel,
-                        isRunning: isRunning,
-                        isConnecting: state.isConnecting,
-                        connectedCount: connectedCount,
-                        discoveredCount: discoveredCount,
-                        hopLimit: state.meshHopLimit,
-                      ),
-                      const SizedBox(height: 10),
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.hub_outlined,
-                            color: scheme.primary,
-                          ),
-                          title: const Text('Pseudo-mesh forwarding'),
-                          subtitle: Text(
-                            'Broadcast → de-dupe → hop-limited forwarding.',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Card(
-                        child: ExpansionTile(
-                          title: const Text('Advanced'),
-                          subtitle: Text(
-                            'Transport + diagnostics',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          ),
-                          childrenPadding: const EdgeInsets.fromLTRB(
-                            12,
-                            0,
-                            12,
-                            12,
-                          ),
-                          children: [
-                            _TransportLogs(logs: state.transportLogs),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Nearby Devices',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                            if (isRunning && !state.isConnecting) ...[
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: scheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Scanning…',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: scheme.primary),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _MeshHeroHeader(
+                    nickname: state.nickname ?? 'UNKNOWN_NODE',
+                    transportLabel: transportLabel,
+                    isRunning: isRunning,
+                    isConnecting: state.isConnecting,
+                    connectedCount: connectedCount,
+                    discoveredCount: discoveredCount,
+                    hopLimit: state.meshHopLimit,
                   ),
-                ),
-              ),
-              if (state.peers.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 16),
+                  
+                  // Diagnostic Terminal
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212),
+                      border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        iconColor: scheme.primary,
+                        collapsedIconColor: scheme.primary.withValues(alpha: 0.5),
+                        title: Text(
+                          '> SYSTEM_DIAGNOSTICS',
+                          style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, color: scheme.primary, fontSize: 13),
+                        ),
+                        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         children: [
-                          if (isRunning) ...[
-                            SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: scheme.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ] else
-                            Icon(
-                              Icons.wifi_tethering_off,
-                              size: 36,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          const SizedBox(height: 8),
-                          Text(
-                            isRunning
-                                ? 'Searching for nearby devices…'
-                                : 'Transport not running',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Make sure Bluetooth & Location are enabled on both phones.',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: scheme.outline),
-                          ),
+                          _TransportLogs(logs: state.transportLogs),
                         ],
                       ),
                     ),
                   ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  sliver: SliverList.separated(
-                    itemCount: state.peers.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final peer = state.peers[index];
-                      return Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: PeerTile(
-                          peer: peer,
-                          onTap: peer.isConnected
-                              ? () => context.read<AppState>().disconnectPeer(
-                                  peer.peerId,
-                                )
-                              : () => context.read<AppState>().connectToPeer(
-                                  peer.peerId,
-                                ),
+                  const SizedBox(height: 24),
+                  
+                  // Scanning Header
+                  Row(
+                    children: [
+                      Text(
+                        'LOCAL_NODES',
+                        style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: Colors.white54, letterSpacing: 1.5, fontSize: 12),
+                      ),
+                      const Spacer(),
+                      if (isRunning && !state.isConnecting) ...[
+                        SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary),
                         ),
-                      );
-                    },
+                        const SizedBox(width: 8),
+                        Text(
+                          'SCANNING...',
+                          style: TextStyle(fontFamily: 'monospace', color: scheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-            ],
+                  const SizedBox(height: 12),
+                  Divider(color: scheme.primary.withValues(alpha: 0.2), height: 1),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
           ),
+          
+          if (state.peers.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isRunning ? Icons.radar_rounded : Icons.wifi_off_rounded,
+                      size: 48,
+                      color: isRunning ? scheme.primary.withValues(alpha: 0.5) : const Color(0xFFFF1744).withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isRunning ? 'AWAITING NODE DETECTION...' : 'TRANSPORT OFFLINE',
+                      style: TextStyle(fontFamily: 'monospace', color: isRunning ? scheme.primary : const Color(0xFFFF1744), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Verify Bluetooth & Location arrays are active.',
+                      style: TextStyle(fontFamily: 'monospace', color: Colors.white30, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList.separated(
+                itemCount: state.peers.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final peer = state.peers[index];
+                  // Assuming PeerTile renders well in dark mode, wrapping in a styled container
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161616),
+                      border: Border.all(color: peer.isConnected ? scheme.primary : scheme.primary.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: PeerTile(
+                      peer: peer,
+                      onTap: peer.isConnected
+                          ? () => context.read<AppState>().disconnectPeer(peer.peerId)
+                          : () => context.read<AppState>().connectToPeer(peer.peerId),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openChat,
-        label: const Text('Chat Room'),
-        icon: const Icon(Icons.forum_outlined),
+        backgroundColor: scheme.primary.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: scheme.primary),
+        ),
+        label: Text('COMMS', style: TextStyle(fontFamily: 'monospace', color: scheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+        icon: Icon(Icons.chat_rounded, color: scheme.primary, size: 18),
       ),
     );
   }
@@ -401,148 +333,96 @@ class _MeshHeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF1565C0).withValues(alpha: 0.15),
-              const Color(0xFF111E36),
-              scheme.surfaceContainerHighest,
-            ],
-          ),
-          border: Border.all(color: const Color(0xFF2196F3).withValues(alpha: 0.2)),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.08,
-                  child: CustomPaint(
-                    painter: _MeshBackdropPainter(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.4), width: 1.5),
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(color: scheme.primary.withValues(alpha: 0.05), blurRadius: 20, spreadRadius: -5),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.1),
+              border: Border(bottom: BorderSide(color: scheme.primary.withValues(alpha: 0.4))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ID: ${nickname.toUpperCase()}',
+                  style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: scheme.primary, letterSpacing: 1.5, fontSize: 13),
                 ),
-              ),
+                _StatusPill(
+                  label: isRunning ? (isConnecting ? 'INITIATING' : 'ONLINE') : 'OFFLINE',
+                  color: isRunning ? scheme.primary : const Color(0xFFFF1744),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
-                        child: const Icon(Icons.wifi_tethering, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nickname,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.2,
-                                  ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              transportLabel,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _StatusPill(
-                        label: isRunning
-                            ? (isConnecting ? 'Starting…' : 'Online')
-                            : 'Offline',
-                        color: isRunning ? scheme.primary : scheme.outline,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _StatusPill(
-                        label: '$connectedCount connected',
-                        color: scheme.secondary,
-                      ),
-                      _StatusPill(
-                        label: '$discoveredCount discovered',
-                        color: scheme.tertiary,
-                      ),
-                      _StatusPill(
-                        label: 'TTL $hopLimit hops',
-                        color: scheme.primary,
-                      ),
-                      _StatusPill(label: 'De-dupe on', color: scheme.primary),
-                    ],
-                  ),
-                ],
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.settings_input_antenna_rounded, size: 14, color: Colors.white54),
+                    const SizedBox(width: 8),
+                    Text(
+                      'PROTOCOL: $transportLabel',
+                      style: const TextStyle(fontFamily: 'monospace', color: Colors.white54, fontSize: 10, letterSpacing: 1.0),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: _StatBox(label: 'UPLINK', value: '$connectedCount', color: scheme.primary)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StatBox(label: 'DETECTED', value: '$discoveredCount', color: Colors.white)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StatBox(label: 'TTL_HOPS', value: '$hopLimit', color: const Color(0xFFFFEA00))),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _MeshBackdropPainter extends CustomPainter {
-  _MeshBackdropPainter({this.color = const Color(0xFFFFFFFF)});
-
+class _StatBox extends StatelessWidget {
+  const _StatBox({required this.label, required this.value, required this.color});
+  final String label;
+  final String value;
   final Color color;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    final nodes = <Offset>[
-      Offset(size.width * 0.12, size.height * 0.30),
-      Offset(size.width * 0.32, size.height * 0.18),
-      Offset(size.width * 0.55, size.height * 0.28),
-      Offset(size.width * 0.78, size.height * 0.18),
-      Offset(size.width * 0.22, size.height * 0.62),
-      Offset(size.width * 0.48, size.height * 0.68),
-      Offset(size.width * 0.74, size.height * 0.62),
-    ];
-
-    // Links
-    paint.color = color;
-    for (var i = 0; i < nodes.length - 1; i++) {
-      canvas.drawLine(nodes[i], nodes[i + 1], paint);
-    }
-    canvas.drawLine(nodes[1], nodes[4], paint);
-    canvas.drawLine(nodes[2], nodes[5], paint);
-    canvas.drawLine(nodes[3], nodes[6], paint);
-
-    // Nodes
-    paint.style = PaintingStyle.fill;
-    for (final n in nodes) {
-      canvas.drawCircle(n, 4.5, paint);
-    }
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 18, color: color)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.white54, letterSpacing: 1.0)),
+        ],
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _TransportLogs extends StatelessWidget {
@@ -553,38 +433,29 @@ class _TransportLogs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    if (logs.isEmpty) {
-      return Text(
-        'No recent activity yet.',
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-      );
-    }
-
-    final recent = logs.take(8).toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Recent activity',
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 8),
-        ...recent.map(
-          (l) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              '• $l',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0A0A),
+        border: Border.all(color: Colors.white12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: logs.isEmpty
+          ? const Text('> Awaiting events...', style: TextStyle(fontFamily: 'monospace', color: Colors.white30, fontSize: 11))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: logs.take(10).map((l) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '> $l',
+                    style: TextStyle(fontFamily: 'monospace', color: scheme.primary.withValues(alpha: 0.8), fontSize: 10),
+                  ),
+                );
+              }).toList(),
             ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -597,17 +468,16 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 115)),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 89),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: color),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 12, color: scheme.onSurface),
+        style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.0, color: color),
       ),
     );
   }

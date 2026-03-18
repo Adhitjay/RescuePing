@@ -24,14 +24,15 @@ class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
 
   static const _tabs = [
-    _Tab(icon: Icons.home, label: 'Home'),
-    _Tab(icon: Icons.chat_bubble_outline, label: 'Chat'),
-    _Tab(icon: Icons.wifi_tethering, label: 'Mesh'),
+    _Tab(icon: Icons.terminal_rounded, label: 'SYS_DASH'),
+    _Tab(icon: Icons.chat_rounded, label: 'COMMS'),
+    _Tab(icon: Icons.radar_rounded, label: 'RADAR'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: IndexedStack(
         index: _tabIndex,
         children: const [
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() => _tabIndex = i),
         destinations: _tabs
@@ -95,30 +97,41 @@ class _DashboardTabState extends State<_DashboardTab> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(
-          Icons.health_and_safety,
-          size: 48,
-          color: Color(0xFF4CAF50),
+        backgroundColor: const Color(0xFF161616),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4), 
+          side: BorderSide(color: Theme.of(context).colorScheme.primary)
         ),
-        title: const Text('Rescue Confirmation'),
+        icon: Icon(
+          Icons.health_and_safety_rounded,
+          size: 48,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(
+          'RESCUE CONFIRMATION', 
+          style: TextStyle(fontFamily: 'monospace', color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.0)
+        ),
         content: Text(
-          '$rescuerName has marked you as rescued.\n\n'
-          'Do you confirm that you have been safely rescued?',
+          '${rescuerName.toUpperCase()} has marked you as rescued.\n\n'
+          'Confirm safety status to halt SOS broadcast.',
+          style: const TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Not Yet'),
+            child: const Text('DENY', style: TextStyle(fontFamily: 'monospace', color: Colors.white54)),
           ),
           FilledButton.icon(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AppState>().confirmRescued();
             },
-            icon: const Icon(Icons.check),
-            label: const Text('Yes, I\'m Safe'),
+            icon: const Icon(Icons.check_rounded, color: Colors.black),
+            label: const Text('CONFIRM SECURE', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900)),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
           ),
         ],
@@ -129,6 +142,7 @@ class _DashboardTabState extends State<_DashboardTab> {
   void _alertOthers(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (_) => SosLevelPicker(
         onSelected: (level) {
           context.read<AppState>().alertOthers(level: level);
@@ -150,20 +164,29 @@ class _DashboardTabState extends State<_DashboardTab> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(
-          Icons.check_circle,
-          size: 48,
-          color: Color(0xFF4CAF50),
+        backgroundColor: const Color(0xFF161616),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4), 
+          side: BorderSide(color: Theme.of(context).colorScheme.primary)
         ),
-        title: const Text('Confirm Rescue'),
+        icon: Icon(
+          Icons.verified_user_rounded,
+          size: 48,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(
+          'CANCEL BEACON', 
+          style: TextStyle(fontFamily: 'monospace', color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900)
+        ),
         content: const Text(
-          'Are you sure you have been safely rescued?\n\n'
-          'This will cancel your SOS alert and reset your profile.',
+          'Confirm safe status?\n\n'
+          'This halts broadcast and resets profile state.',
+          style: TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('ABORT', style: TextStyle(fontFamily: 'monospace', color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () {
@@ -171,9 +194,11 @@ class _DashboardTabState extends State<_DashboardTab> {
               context.read<AppState>().confirmRescued();
             },
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
-            child: const Text('Yes, I\'m Rescued'),
+            child: const Text('CONFIRM', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -188,32 +213,39 @@ class _DashboardTabState extends State<_DashboardTab> {
     final alertCount = state.activeAlerts.length;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 40),
-                borderRadius: BorderRadius.circular(10),
+                color: scheme.primary.withValues(alpha: 0.1),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              child: Icon(Icons.sos_rounded, color: scheme.primary, size: 20),
             ),
-            const SizedBox(width: 10),
-            const Text('RescuePing'),
+            const SizedBox(width: 12),
+            Text(
+              'DISTRESS_NODE',
+              style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: scheme.primary, fontSize: 16, letterSpacing: 1.5),
+            ),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: scheme.primary.withValues(alpha: 0.2), height: 1.0),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(Icons.settings_outlined, color: scheme.primary),
+            color: const Color(0xFF161616),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: BorderSide(color: scheme.primary.withValues(alpha: 0.3)),
+            ),
             onSelected: (value) {
               switch (value) {
                 case 'edit':
@@ -227,20 +259,25 @@ class _DashboardTabState extends State<_DashboardTab> {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF161616),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4), 
+                        side: BorderSide(color: scheme.primary)
+                      ),
                       icon: Icon(
                         Icons.swap_horiz_rounded,
                         size: 40,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: scheme.primary,
                       ),
-                      title: const Text('Switch Role'),
+                      title: Text('RECONFIGURE ROLE', style: TextStyle(fontFamily: 'monospace', color: scheme.primary, fontWeight: FontWeight.w900)),
                       content: const Text(
-                        'This will reset your profile and take you back '
-                        'to the role selection screen.\n\nAre you sure?',
+                        'This resets profile data and initiates role selection protocol.\n\nProceed?',
+                        style: TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel'),
+                          child: const Text('ABORT', style: TextStyle(fontFamily: 'monospace', color: Colors.white54)),
                         ),
                         FilledButton(
                           onPressed: () async {
@@ -254,7 +291,12 @@ class _DashboardTabState extends State<_DashboardTab> {
                               (_) => false,
                             );
                           },
-                          child: const Text('Switch'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                          child: const Text('PROCEED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900)),
                         ),
                       ],
                     ),
@@ -262,20 +304,20 @@ class _DashboardTabState extends State<_DashboardTab> {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
-                  leading: Icon(Icons.person),
-                  title: Text('Edit Profile'),
+                  leading: Icon(Icons.terminal_rounded, color: scheme.primary),
+                  title: const Text('EDIT_CONFIG', style: TextStyle(fontFamily: 'monospace', color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'switch',
                 child: ListTile(
-                  leading: Icon(Icons.swap_horiz),
-                  title: Text('Switch Role'),
+                  leading: Icon(Icons.swap_horiz_rounded, color: scheme.primary),
+                  title: const Text('SWITCH_ROLE', style: TextStyle(fontFamily: 'monospace', color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -289,7 +331,7 @@ class _DashboardTabState extends State<_DashboardTab> {
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // ─── SOS Button ───────────────────────────────────
                 SosButton(
@@ -299,156 +341,119 @@ class _DashboardTabState extends State<_DashboardTab> {
                   onLongPress: () => _alertOthers(context),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
                 // ─── Status text ──────────────────────────────────
                 if (state.isSosActive) ...[
                   Text(
-                    'SOS Active — ${state.currentSosLevel.label}',
-                    style: TextStyle(
-                      color: scheme.error,
-                      fontWeight: FontWeight.w700,
+                    'BEACON ACTIVE: ${state.currentSosLevel.label.toUpperCase()}',
+                    style: const TextStyle(
+                      color: Color(0xFFFF1744),
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace',
+                      letterSpacing: 1.5,
                       fontSize: 16,
                     ),
                   ),
                   const SizedBox(height: 4),
                   TextButton.icon(
                     onPressed: () => state.cancelAlert(),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Cancel Alert'),
-                    style: TextButton.styleFrom(foregroundColor: scheme.error),
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('ABORT TRANSMISSION', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF1744)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+                  
                   // ─── "I've Been Rescued" button ──────────────
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF81C784), Color(0xFF388E3C)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton.icon(
-                      onPressed: _selfConfirmRescue,
-                      icon: const Icon(Icons.health_and_safety, color: Colors.white),
-                      label: const Text(
-                        'I\'ve Been Rescued',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
-                      ),
+                  OutlinedButton.icon(
+                    onPressed: _selfConfirmRescue,
+                    icon: Icon(Icons.security_rounded, color: scheme.primary, size: 20),
+                    label: Text('MARK AS SECURED', style: TextStyle(fontFamily: 'monospace', color: scheme.primary, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: scheme.primary, width: 2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      backgroundColor: scheme.primary.withValues(alpha: 0.1),
                     ),
                   ),
                 ] else ...[
                   Text(
-                    'Tap to send quick alert',
+                    'TAP TO TRANSMIT SOS',
                     style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 13,
+                      color: scheme.primary.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      letterSpacing: 2.0,
+                      fontWeight: FontWeight.bold
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    'Long press for severity picker',
+                    'HOLD TO CONFIGURE',
                     style: TextStyle(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 150),
-                      fontSize: 12,
+                      color: Colors.white24,
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                      letterSpacing: 1.5
                     ),
                   ),
                 ],
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 40),
 
                 // ─── Stats bar ────────────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _StatItem(
-                            icon: Icons.people,
-                            value: '${state.peers.length}',
-                            label: 'Devices',
-                          ),
-                          _StatItem(
-                            icon: Icons.link,
-                            value:
-                                '${state.peers.where((p) => p.isConnected).length}',
-                            label: 'Connected',
-                          ),
-                          _StatItem(
-                            icon: Icons.warning_amber,
-                            value: '$alertCount',
-                            label: 'Alerts',
-                            color: alertCount > 0 ? scheme.error : null,
-                          ),
-                        ],
-                      ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161616),
+                      border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _StatItem(
+                          icon: Icons.hub_rounded,
+                          value: '${state.peers.length}',
+                          label: 'NODES',
+                        ),
+                        _StatItem(
+                          icon: Icons.satellite_alt_rounded,
+                          value: '${state.peers.where((p) => p.isConnected).length}',
+                          label: 'UPLINK',
+                        ),
+                        _StatItem(
+                          icon: Icons.warning_rounded,
+                          value: '$alertCount',
+                          label: 'ALERTS',
+                          color: alertCount > 0 ? const Color(0xFFFF1744) : null,
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
                 // ─── Section header ───────────────────────────────
                 if (state.activeAlerts.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                scheme.error.withValues(alpha: 0.8),
-                                const Color(0xFFD32F2F),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: scheme.error.withValues(alpha: 0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF1744), size: 18),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'EXTERNAL BEACONS DETECTED',
+                          style: TextStyle(
+                            color: Color(0xFFFF1744),
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            letterSpacing: 1.5
                           ),
-                          child: const Icon(Icons.sos_rounded, size: 14, color: Colors.white),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Nearby Alerts',
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: scheme.error,
-                                    fontWeight: FontWeight.w700,
-                                  ),
                         ),
                       ],
                     ),
@@ -460,15 +465,17 @@ class _DashboardTabState extends State<_DashboardTab> {
           // ─── Alert cards ─────────────────────────────────────────
           if (state.activeAlerts.isNotEmpty)
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverList.separated(
                 itemCount: state.activeAlerts.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   return SosBeaconCard(beacon: state.activeAlerts[index]);
                 },
               ),
             ),
+            
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
@@ -495,21 +502,25 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: c),
-        const SizedBox(height: 2),
+        Icon(icon, size: 16, color: c.withValues(alpha: 0.5)),
+        const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'monospace',
+            fontSize: 24,
             color: c,
           ),
         ),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            color: scheme.onSurfaceVariant,
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: Colors.white54,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
           ),
         ),
       ],

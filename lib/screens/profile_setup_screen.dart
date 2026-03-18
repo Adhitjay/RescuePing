@@ -79,7 +79,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final nickname = _nicknameController.text.trim();
     if (nickname.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a nickname')),
+        SnackBar(
+          backgroundColor: const Color(0xFFFF1744),
+          content: const Text('ERROR: IDENTIFIER REQUIRED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+        ),
       );
       return;
     }
@@ -118,336 +121,269 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Profile' : 'Set Up Profile'),
+        backgroundColor: const Color(0xFF0A0A0A),
+        title: Text(
+          widget.isEditing ? 'SYS_CONFIG // EDIT' : 'SYS_CONFIG // SETUP',
+          style: TextStyle(fontFamily: 'monospace', fontSize: 16, letterSpacing: 1.5, color: scheme.primary),
+        ),
         automaticallyImplyLeading: widget.isEditing,
+        iconTheme: IconThemeData(color: scheme.primary),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             children: [
               // ─── Header ───────────────────────────────────
               if (!widget.isEditing) ...[
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (_isRescuer
-                                ? const Color(0xFF1565C0)
-                                : const Color(0xFFE65100))
-                            .withValues(alpha: 0.15),
-                        Colors.transparent,
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFF161616),
+                    border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 1.5),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
                       Icon(
-                        _isRescuer ? Icons.shield : Icons.sos,
-                        size: 48,
-                        color: _isRescuer
-                            ? const Color(0xFF2196F3)
-                            : scheme.error,
+                        _isRescuer ? Icons.shield_rounded : Icons.sos_rounded,
+                        size: 40,
+                        color: scheme.primary,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isRescuer
-                            ? 'Rescuer Profile'
-                            : 'Emergency Profile',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _isRescuer
-                            ? 'Set up your rescuer identity for the mesh network.'
-                            : 'This info is sent with your SOS alerts to help rescuers.',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                        textAlign: TextAlign.center,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isRescuer ? 'COMMAND PROFILE' : 'DISTRESS PROFILE',
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.5, color: Colors.white),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _isRescuer
+                                  ? 'Establish rescuer identity for mesh nodes.'
+                                  : 'Data encrypted. Transmitted only during SOS broadcast.',
+                              style: const TextStyle(color: Colors.white54, fontSize: 11, fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
 
               // ─── Nickname ────────────────────────────────────
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.badge_outlined,
-                            size: 18,
-                            color: scheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Identity',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: scheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _nicknameController,
-                        autofocus: !widget.isEditing,
-                        decoration: InputDecoration(
-                          labelText: 'Nickname *',
-                          hintText: _isRescuer
-                              ? 'e.g. Rescue Team Alpha'
-                              : 'e.g. Alex',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          filled: true,
-                          fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
+              _TechFormSection(
+                title: 'IDENTITY_MATRIX',
+                icon: Icons.badge_outlined,
+                child: TextField(
+                  controller: _nicknameController,
+                  autofocus: !widget.isEditing,
+                  style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                  decoration: _techInputDecoration(
+                    scheme,
+                    _isRescuer ? 'e.g. ALPHA-1' : 'e.g. CIV-01',
+                    Icons.terminal_rounded,
                   ),
                 ),
               ),
 
               // ─── Trapped person-only fields ─────────────────
               if (!_isRescuer) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // Blood group & people count
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: scheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Basic Info',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ],
+                _TechFormSection(
+                  title: 'BIOMETRIC_DATA',
+                  icon: Icons.fingerprint_rounded,
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _bloodGroup,
+                        dropdownColor: const Color(0xFF161616),
+                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                        decoration: _techInputDecoration(scheme, 'Blood Type (Optional)', Icons.water_drop_rounded),
+                        items: _bloodGroups.map((g) {
+                          return DropdownMenuItem(
+                            value: g,
+                            child: Text(g.isEmpty ? 'UNSPECIFIED' : g),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _bloodGroup = v ?? ''),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF121212),
+                          border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _bloodGroup,
-                          decoration: InputDecoration(
-                            labelText: 'Blood Group (Optional)',
-                            hintText: 'e.g. O+, A-',
-                            prefixIcon: const Icon(Icons.water_drop),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            filled: true,
-                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          ),
-                          items: _bloodGroups.map((g) {
-                            return DropdownMenuItem(
-                              value: g,
-                              child: Text(g.isEmpty ? 'Not specified' : g),
-                            );
-                          }).toList(),
-                          onChanged: (v) =>
-                              setState(() => _bloodGroup = v ?? ''),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
+                        child: Row(
                           children: [
-                            const Icon(Icons.people, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('People with you:'),
+                            Icon(Icons.people_alt_rounded, size: 20, color: scheme.primary.withValues(alpha: 0.7)),
+                            const SizedBox(width: 12),
+                            const Text('SOULS ON BOARD:', style: TextStyle(color: Colors.white70, fontFamily: 'monospace', fontSize: 12)),
                             const Spacer(),
                             IconButton(
-                              icon: const Icon(Icons.remove_circle_outline),
-                              onPressed: _peopleCount > 1
-                                  ? () => setState(() => _peopleCount--)
-                                  : null,
+                              icon: Icon(Icons.remove_circle_outline, color: _peopleCount > 1 ? scheme.primary : Colors.white24),
+                              onPressed: _peopleCount > 1 ? () => setState(() => _peopleCount--) : null,
                             ),
-                            Text(
-                              '$_peopleCount',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                            SizedBox(
+                              width: 30,
+                              child: Text(
+                                '$_peopleCount',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: scheme.primary),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline),
-                              onPressed: () =>
-                                  setState(() => _peopleCount++),
+                              icon: Icon(Icons.add_circle_outline, color: scheme.primary),
+                              onPressed: () => setState(() => _peopleCount++),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // Medical info
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.medical_information,
-                              size: 18,
-                              color: scheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Medical Info (optional)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _medicalController,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: 'Important Medical Notes (Optional)',
-                            hintText: 'e.g. Allergies, conditions, medications...',
-                            prefixIcon: const Icon(Icons.medical_services_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            filled: true,
-                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                            alignLabelWithHint: true,
-                          ),
-                        ),
-                      ],
-                    ),
+                _TechFormSection(
+                  title: 'MEDICAL_RECORDS',
+                  icon: Icons.medical_information_rounded,
+                  child: TextField(
+                    controller: _medicalController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 13),
+                    decoration: _techInputDecoration(scheme, 'Allergies, conditions, meds...', Icons.health_and_safety_rounded),
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // Emergency contact
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.contact_phone,
-                              size: 18,
-                              color: scheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Emergency Contact (optional)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _contactNameController,
-                          decoration: InputDecoration(
-                            labelText: 'Emergency Contact Name (Optional)',
-                            prefixIcon: const Icon(Icons.person_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            filled: true,
-                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _contactPhoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: 'Emergency Contact Phone (Optional)',
-                            prefixIcon: const Icon(Icons.phone),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            filled: true,
-                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ],
-                    ),
+                _TechFormSection(
+                  title: 'EMERGENCY_UPLINK',
+                  icon: Icons.contact_phone_rounded,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _contactNameController,
+                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                        decoration: _techInputDecoration(scheme, 'Contact Name (Optional)', Icons.person_outline_rounded),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _contactPhoneController,
+                        keyboardType: TextInputType.phone,
+                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                        decoration: _techInputDecoration(scheme, 'Contact Phone (Optional)', Icons.phone_rounded),
+                      ),
+                    ],
                   ),
                 ),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              FilledButton.icon(
+              FilledButton(
                 onPressed: _save,
-                icon: Icon(
-                  widget.isEditing ? Icons.save : Icons.arrow_forward,
-                ),
-                label: Text(
-                  widget.isEditing ? 'Save Changes' : 'Save & Continue',
-                ),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  backgroundColor: scheme.primary,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(widget.isEditing ? Icons.save : Icons.arrow_forward_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      widget.isEditing ? 'COMMIT CHANGES' : 'INITIALIZE PROTOCOL',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 2.0),
+                    ),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              if (!widget.isEditing)
-                Text(
-                  _isRescuer
-                      ? 'Your nickname is visible to other mesh devices.'
-                      : 'Your data stays on your device. It is only shared over the mesh when you send an SOS.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _techInputDecoration(ColorScheme scheme, String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white24, fontFamily: 'monospace', fontSize: 12),
+      prefixIcon: Icon(icon, color: scheme.primary.withValues(alpha: 0.5), size: 20),
+      filled: true,
+      fillColor: const Color(0xFF121212),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.2)),
+      ),
+    );
+  }
+}
+
+class _TechFormSection extends StatelessWidget {
+  const _TechFormSection({required this.title, required this.icon, required this.child});
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        border: Border(left: BorderSide(color: scheme.primary, width: 3)),
+        borderRadius: const BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: scheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: scheme.primary,
+                  fontFamily: 'monospace',
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
       ),
     );
   }

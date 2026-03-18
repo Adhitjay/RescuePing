@@ -23,14 +23,15 @@ class _RescuerHomeScreenState extends State<RescuerHomeScreen> {
   int _tabIndex = 0;
 
   static const _tabs = [
-    _Tab(icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    _Tab(icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
-    _Tab(icon: Icons.wifi_tethering_rounded, label: 'Mesh'),
+    _Tab(icon: Icons.dashboard_rounded, label: 'COMMAND'),
+    _Tab(icon: Icons.chat_rounded, label: 'COMMS'),
+    _Tab(icon: Icons.radar_rounded, label: 'RADAR'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       body: IndexedStack(
         index: _tabIndex,
         children: const [
@@ -40,6 +41,7 @@ class _RescuerHomeScreenState extends State<RescuerHomeScreen> {
         ],
       ),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() => _tabIndex = i),
         destinations: _tabs
@@ -63,23 +65,29 @@ class _RescuerDashboard extends StatelessWidget {
   const _RescuerDashboard();
 
   void _switchRole(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4), 
+          side: BorderSide(color: scheme.primary)
+        ),
         icon: Icon(
           Icons.swap_horiz_rounded,
           size: 40,
-          color: Theme.of(context).colorScheme.primary,
+          color: scheme.primary,
         ),
-        title: const Text('Switch Role'),
+        title: Text('RECONFIGURE ROLE', style: TextStyle(fontFamily: 'monospace', color: scheme.primary, fontWeight: FontWeight.w900)),
         content: const Text(
-          'This will reset your profile and take you back to the role selection screen.\n\n'
-          'Are you sure?',
+          'This resets profile data and initiates role selection protocol.\n\nProceed?',
+          style: TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('ABORT', style: TextStyle(fontFamily: 'monospace', color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () async {
@@ -93,7 +101,12 @@ class _RescuerDashboard extends StatelessWidget {
                 (_) => false,
               );
             },
-            child: const Text('Switch'),
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+            child: const Text('PROCEED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -107,32 +120,39 @@ class _RescuerDashboard extends StatelessWidget {
     final alerts = state.activeAlerts;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withValues(alpha: 40),
-                borderRadius: BorderRadius.circular(10),
+                color: scheme.primary.withValues(alpha: 0.1),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              child: Icon(Icons.shield_rounded, color: scheme.primary, size: 20),
             ),
-            const SizedBox(width: 10),
-            const Text('RescuePing'),
+            const SizedBox(width: 12),
+            Text(
+              'TACTICAL_COMMAND',
+              style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: scheme.primary, fontSize: 16, letterSpacing: 1.5),
+            ),
           ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: scheme.primary.withValues(alpha: 0.2), height: 1.0),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(Icons.settings_outlined, color: scheme.primary),
+            color: const Color(0xFF161616),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: BorderSide(color: scheme.primary.withValues(alpha: 0.3)),
+            ),
             onSelected: (value) {
               switch (value) {
                 case 'edit':
@@ -147,20 +167,20 @@ class _RescuerDashboard extends StatelessWidget {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
-                  leading: Icon(Icons.person),
-                  title: Text('Edit Profile'),
+                  leading: Icon(Icons.terminal_rounded, color: scheme.primary),
+                  title: const Text('EDIT_CONFIG', style: TextStyle(fontFamily: 'monospace', color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'switch',
                 child: ListTile(
-                  leading: Icon(Icons.swap_horiz),
-                  title: Text('Switch Role'),
+                  leading: Icon(Icons.swap_horiz_rounded, color: scheme.primary),
+                  title: const Text('SWITCH_ROLE', style: TextStyle(fontFamily: 'monospace', color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -173,7 +193,7 @@ class _RescuerDashboard extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -181,19 +201,9 @@ class _RescuerDashboard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF1565C0).withValues(alpha: 30),
-                          const Color(0xFF111E36),
-                          scheme.surfaceContainerHighest,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFF2196F3).withValues(alpha: 40),
-                      ),
+                      color: const Color(0xFF161616),
+                      border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,25 +212,22 @@ class _RescuerDashboard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _GlowingStat(
-                              icon: Icons.people_rounded,
+                              icon: Icons.hub_rounded,
                               value: '${state.peers.length}',
-                              label: 'Devices',
-                              color: const Color(0xFF64B5F6),
+                              label: 'NET NODES',
+                              color: scheme.primary,
                             ),
                             _GlowingStat(
-                              icon: Icons.link_rounded,
-                              value:
-                                  '${state.peers.where((p) => p.isConnected).length}',
-                              label: 'Connected',
-                              color: const Color(0xFF81C784),
+                              icon: Icons.satellite_alt_rounded,
+                              value: '${state.peers.where((p) => p.isConnected).length}',
+                              label: 'UPLINK',
+                              color: scheme.primary,
                             ),
                             _GlowingStat(
                               icon: Icons.warning_amber_rounded,
                               value: '${alerts.length}',
-                              label: 'Distress',
-                              color: alerts.isNotEmpty
-                                  ? const Color(0xFFEF5350)
-                                  : const Color(0xFF9E9E9E),
+                              label: 'CRITICAL',
+                              color: alerts.isNotEmpty ? const Color(0xFFFF1744) : Colors.white30,
                             ),
                           ],
                         ),
@@ -228,77 +235,44 @@ class _RescuerDashboard extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
 
                   // ─── Section header ─────────────────────────
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              scheme.error.withValues(alpha: 0.8),
-                              const Color(0xFFD32F2F),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: scheme.error.withValues(alpha: 0.4),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.sos_rounded, size: 16, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
                       Text(
-                        'People in Distress',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
+                        'ACTIVE TARGETS',
+                        style: TextStyle(
+                          color: scheme.primary, 
+                          fontWeight: FontWeight.w900, 
+                          fontFamily: 'monospace',
+                          letterSpacing: 2.0, 
+                          fontSize: 12
+                        ),
                       ),
                       const Spacer(),
                       if (alerts.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            border: Border.all(
-                              color: scheme.error.withValues(alpha: 0.5),
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFFF1744).withValues(alpha: 0.5)),
+                            borderRadius: BorderRadius.circular(2),
+                            color: const Color(0xFFFF1744).withValues(alpha: 0.1),
                           ),
                           child: Text(
-                            '${alerts.length} ACTIVE',
-                            style: TextStyle(
-                              color: scheme.error,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 11,
+                            '${alerts.length} SIGNAL(S)',
+                            style: const TextStyle(
+                              color: Color(0xFFFF1744),
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
                               letterSpacing: 1.0,
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tap to view details and navigate',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 170),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -312,63 +286,24 @@ class _RescuerDashboard extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF4CAF50).withValues(alpha: 0.15),
-                            Colors.transparent,
-                          ],
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF81C784), Color(0xFF388E3C)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.verified_user_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                    Icon(Icons.radar_rounded, size: 48, color: scheme.primary.withValues(alpha: 0.3)),
                     const SizedBox(height: 16),
                     Text(
-                      'All clear',
+                      'SECTOR CLEAR',
                       style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        color: scheme.primary,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: 2.0,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'No active distress signals',
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Monitoring mesh network...',
                       style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${state.peers.length} devices on mesh • scanning…',
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 130),
+                        color: Colors.white54,
+                        fontFamily: 'monospace',
                         fontSize: 12,
                       ),
                     ),
@@ -378,15 +313,17 @@ class _RescuerDashboard extends StatelessWidget {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverList.separated(
                 itemCount: alerts.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   return _AlertCard(beacon: alerts[index]);
                 },
               ),
             ),
+            
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
@@ -410,12 +347,13 @@ class _GlowingStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: 22, color: color),
+        Icon(icon, size: 16, color: color.withValues(alpha: 0.5)),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 28,
+            fontFamily: 'monospace',
             fontWeight: FontWeight.w900,
             color: color,
           ),
@@ -423,8 +361,11 @@ class _GlowingStat extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            color: color.withValues(alpha: 180),
+            fontSize: 10,
+            fontFamily: 'monospace',
+            color: Colors.white54,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
           ),
         ),
       ],
@@ -441,171 +382,142 @@ class _AlertCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     Color levelColor;
-    IconData levelIcon;
     switch (beacon.level) {
       case SosLevel.trapped:
-        levelColor = const Color(0xFFEF5350);
-        levelIcon = Icons.warning_rounded;
+        levelColor = const Color(0xFFFF1744);
       case SosLevel.injured:
-        levelColor = const Color(0xFFFF9800);
-        levelIcon = Icons.local_hospital_rounded;
+        levelColor = const Color(0xFFFF9100);
       case SosLevel.needHelp:
-        levelColor = const Color(0xFFFDD835);
-        levelIcon = Icons.help_outline_rounded;
+        levelColor = const Color(0xFFFFEA00);
       case SosLevel.safe:
-        levelColor = const Color(0xFF66BB6A);
-        levelIcon = Icons.check_circle_rounded;
+        levelColor = scheme.primary;
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => RescuerMapScreen(beacon: beacon),
-            ),
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: levelColor, width: 4),
-            ),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => RescuerMapScreen(beacon: beacon),
           ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          border: Border(left: BorderSide(color: levelColor, width: 4)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        beacon.senderNickname.toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'monospace',
+                          color: Colors.white,
+                          fontSize: 16,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        color: levelColor.withValues(alpha: 0.2),
+                        child: Text(
+                          beacon.level.label.toUpperCase(),
+                          style: TextStyle(
+                            color: levelColor,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: scheme.primary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F0F0F),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: levelColor.withValues(alpha: 35),
-                      borderRadius: BorderRadius.circular(12),
+                  if (beacon.hasLocation) ...[
+                    Icon(Icons.location_on_rounded, size: 14, color: scheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${beacon.latitude!.toStringAsFixed(4)}, ${beacon.longitude!.toStringAsFixed(4)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.primary,
+                        fontFamily: 'monospace',
+                      ),
                     ),
-                    child: Icon(levelIcon, color: levelColor, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          beacon.senderNickname,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: levelColor.withValues(alpha: 30),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            beacon.level.label.toUpperCase(),
-                            style: TextStyle(
-                              color: levelColor,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ] else ...[
+                    const Icon(Icons.location_off_rounded, size: 14, color: Color(0xFFFF1744)),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'NO GPS FIX',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFFF1744),
+                        fontFamily: 'monospace',
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 80),
-                      borderRadius: BorderRadius.circular(10),
+                  ],
+                  const Spacer(),
+                  if (beacon.bloodGroup.isNotEmpty) ...[
+                    Icon(Icons.bloodtype_rounded, size: 14, color: const Color(0xFFFF1744)),
+                    const SizedBox(width: 4),
+                    Text(
+                      beacon.bloodGroup,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                      color: scheme.primary,
+                    const SizedBox(width: 12),
+                  ],
+                  const Icon(Icons.people_rounded, size: 14, color: Colors.white54),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${beacon.peopleCount}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white54,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 80),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    if (beacon.hasLocation) ...[
-                      Icon(Icons.location_on_rounded,
-                          size: 14, color: scheme.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${beacon.latitude!.toStringAsFixed(4)}, ${beacon.longitude!.toStringAsFixed(4)}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: scheme.onSurfaceVariant,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ] else ...[
-                      Icon(Icons.location_off_rounded,
-                          size: 14, color: scheme.error),
-                      const SizedBox(width: 4),
-                      Text(
-                        'No GPS',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    const Spacer(),
-                    if (beacon.bloodGroup.isNotEmpty) ...[
-                      Icon(Icons.bloodtype_rounded,
-                          size: 14, color: scheme.error),
-                      const SizedBox(width: 4),
-                      Text(
-                        beacon.bloodGroup,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    Icon(
-                        Icons.people_rounded, size: 14, color: scheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${beacon.peopleCount}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (beacon.hasLocation) ...[
-                const SizedBox(height: 12),
-                _DirectionsButton(beacon: beacon),
-              ],
+            ),
+            if (beacon.hasLocation) ...[
+              const SizedBox(height: 16),
+              _DirectionsButton(beacon: beacon),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -645,33 +557,50 @@ class _DirectionsButtonState extends State<_DirectionsButton> {
       );
     }
 
-    if (await canLaunchUrl(mapsUri)) {
-      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open maps application')),
-      );
+    try {
+      if (await canLaunchUrl(mapsUri)) {
+        await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+      } else {
+        _showError();
+      }
+    } catch (e) {
+      _showError();
     }
 
     if (mounted) setState(() => _launching = false);
   }
 
+  void _showError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Color(0xFFFF1744),
+        content: Text('ERR: NAV_SYSTEM OFFLINE OR MAPS NOT INSTALLED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, color: Colors.black)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    
     if (_launching) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-      ));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary)),
+        )
+      );
     }
-    return FilledButton.icon(
+    
+    return OutlinedButton.icon(
       onPressed: _openMaps,
-      icon: const Icon(Icons.directions_rounded, size: 18),
-      label: const Text('Get Google Maps Directions'),
-      style: FilledButton.styleFrom(
-        visualDensity: VisualDensity.compact,
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
+      icon: Icon(Icons.satellite_alt_rounded, size: 16, color: scheme.primary),
+      label: Text('ROUTE TO TARGET', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, color: scheme.primary, letterSpacing: 1.0)),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        backgroundColor: scheme.primary.withValues(alpha: 0.1),
       ),
     );
   }

@@ -25,15 +25,13 @@ class _RescuerMapScreenState extends State<RescuerMapScreen> {
 
     setState(() => _launching = true);
 
-    // Get rescuer's current position for the starting point.
     final pos = await _location.getLocationOnce();
-
     final destLat = widget.beacon.latitude!;
     final destLng = widget.beacon.longitude!;
 
     Uri mapsUri;
     if (pos != null) {
-      // Google Maps directions from rescuer → trapped person.
+      // Use standard Google Maps Directions API URL format
       mapsUri = Uri.parse(
         'https://www.google.com/maps/dir/?api=1'
         '&origin=${pos.latitude},${pos.longitude}'
@@ -41,306 +39,241 @@ class _RescuerMapScreenState extends State<RescuerMapScreen> {
         '&travelmode=driving',
       );
     } else {
-      // Fallback: just show the destination.
-      mapsUri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$destLat,$destLng',
-      );
+      // Fallback to just opening the location if user's own GPS fails
+      mapsUri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$destLat,$destLng');
     }
 
-    if (await canLaunchUrl(mapsUri)) {
-      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open maps application')),
-      );
+    try {
+      if (await canLaunchUrl(mapsUri)) {
+        await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+      } else {
+        _showNavError();
+      }
+    } catch (e) {
+      _showNavError();
     }
 
     if (mounted) setState(() => _launching = false);
+  }
+
+  void _showNavError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Color(0xFFFF1744),
+        content: Text('ERR: NAV_SYSTEM OFFLINE OR MAPS NOT INSTALLED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, color: Colors.black)),
+      ),
+    );
   }
 
   void _markRescued() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.check_circle, size: 40, color: Color(0xFF4CAF50)),
-        title: const Text('Confirm Rescue'),
+        backgroundColor: const Color(0xFF161616), // Moved inside AlertDialog
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4), 
+          side: BorderSide(color: Theme.of(context).colorScheme.primary)
+        ), // Moved inside AlertDialog
+        title: Text(
+          'CONFIRM EXTRACTION', 
+          style: TextStyle(fontFamily: 'monospace', color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900)
+        ),
         content: Text(
-          'Mark ${widget.beacon.senderNickname} as rescued?\n\n'
-          'This will send a confirmation to their device.',
+          'Target: ${widget.beacon.senderNickname.toUpperCase()}\n\n'
+          'Confirm visual on target and transmit SECURE code to node?',
+          style: const TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('ABORT', style: TextStyle(fontFamily: 'monospace', color: Colors.white54)),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AppState>().markAsRescued(widget.beacon.senderDeviceId);
-              Navigator.pop(context); // Return to dashboard.
+              Navigator.pop(context); // Go back to command dash
             },
-            child: const Text('Yes, Rescued'),
+            child: const Text('CONFIRM SECURE', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900)),
           ),
         ],
       ),
     );
   }
 
+  Color _getLevelColor(SosLevel level, ColorScheme scheme) {
+    switch (level) {
+      case SosLevel.trapped:
+        return const Color(0xFFFF1744);
+      case SosLevel.injured:
+        return const Color(0xFFFF9100);
+      case SosLevel.needHelp:
+        return const Color(0xFFFFEA00);
+      case SosLevel.safe:
+        return scheme.primary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final beacon = widget.beacon;
-
-    Color levelColor;
-    switch (beacon.level) {
-      case SosLevel.trapped:
-        levelColor = const Color(0xFFB71C1C);
-      case SosLevel.injured:
-        levelColor = const Color(0xFFE65100);
-      case SosLevel.needHelp:
-        levelColor = const Color(0xFFF57F17);
-      case SosLevel.safe:
-        levelColor = const Color(0xFF4CAF50);
-    }
+    final levelColor = _getLevelColor(beacon.level, scheme);
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: Text(beacon.senderNickname),
+        backgroundColor: const Color(0xFF0A0A0A),
+        iconTheme: IconThemeData(color: scheme.primary),
+        title: Text('TARGET_DATA: ${beacon.senderNickname.toUpperCase()}', style: TextStyle(fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.w900, color: scheme.primary, letterSpacing: 1.0)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: scheme.primary.withValues(alpha: 0.2), height: 1.0),
+        ),
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF111E36),
-                    scheme.surface,
-                    scheme.surface,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          ListView(
-        padding: const EdgeInsets.all(16),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
         children: [
           // ─── Severity header ─────────────────────────
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  levelColor.withValues(alpha: 0.15),
-                  scheme.surfaceContainerHighest,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: levelColor.withValues(alpha: 0.3),
-              ),
+              color: const Color(0xFF161616),
+              border: Border.all(color: levelColor, width: 2),
+              borderRadius: BorderRadius.circular(4),
+              boxShadow: [BoxShadow(color: levelColor.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: -5)],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: levelColor.withValues(alpha: 60),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.warning_amber,
-                      size: 30,
-                      color: levelColor,
-                    ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 40, color: levelColor),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CLASS: ${beacon.level.label.toUpperCase()}',
+                        style: TextStyle(fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: levelColor),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'SOULS IN SECTOR: ${beacon.peopleCount}',
+                        style: const TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 11, letterSpacing: 1.0),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          beacon.level.label,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: levelColor,
-                          ),
-                        ),
-                        Text(
-                          '${beacon.peopleCount} ${beacon.peopleCount == 1 ? 'person' : 'people'} at this location',
-                          style: TextStyle(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // ─── Details card ───────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.05),
-              ),
+              color: const Color(0xFF0F0F0F),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(4),
             ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Details',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    icon: Icons.person,
-                    label: 'Name',
-                    value: beacon.senderNickname,
-                  ),
-                  if (beacon.bloodGroup.isNotEmpty)
-                    _InfoRow(
-                      icon: Icons.bloodtype,
-                      label: 'Blood Group',
-                      value: beacon.bloodGroup,
-                    ),
-                  if (beacon.hasLocation) ...[
-                    _InfoRow(
-                      icon: Icons.location_on,
-                      label: 'Latitude',
-                      value: beacon.latitude!.toStringAsFixed(6),
-                    ),
-                    _InfoRow(
-                      icon: Icons.location_on,
-                      label: 'Longitude',
-                      value: beacon.longitude!.toStringAsFixed(6),
-                    ),
-                  ],
-                  if (beacon.message.isNotEmpty)
-                    _InfoRow(
-                      icon: Icons.message,
-                      label: 'Message',
-                      value: beacon.message,
-                    ),
-                  _InfoRow(
-                    icon: Icons.access_time,
-                    label: 'Sent',
-                    value: _formatTime(beacon.timestampMs),
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '> PAYLOAD_DATA',
+                  style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: scheme.primary, letterSpacing: 1.5, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                _InfoRow(icon: Icons.badge_outlined, label: 'ID', value: beacon.senderNickname.toUpperCase()),
+                
+                if (beacon.bloodGroup != null && beacon.bloodGroup!.isNotEmpty)
+                  _InfoRow(icon: Icons.water_drop_rounded, label: 'TYPE', value: beacon.bloodGroup!),
+                  
+                if (beacon.hasLocation) ...[
+                  _InfoRow(icon: Icons.my_location_rounded, label: 'LAT', value: beacon.latitude!.toStringAsFixed(6)),
+                  _InfoRow(icon: Icons.location_searching_rounded, label: 'LNG', value: beacon.longitude!.toStringAsFixed(6)),
                 ],
-              ),
+                
+                if (beacon.message != null && beacon.message!.isNotEmpty)
+                  _InfoRow(icon: Icons.message_rounded, label: 'MSG', value: beacon.message!),
+                  
+                _InfoRow(icon: Icons.schedule_rounded, label: 'TX_TIME', value: _formatTime(beacon.timestampMs)),
+              ],
             ),
+          ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // ─── Action buttons ─────────────────────────
           if (beacon.hasLocation)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    scheme.primary,
-                    scheme.primary.withValues(alpha: 0.8),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            FilledButton(
+              onPressed: _launching ? null : _openMaps,
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.primary.withValues(alpha: 0.1),
+                foregroundColor: scheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4), side: BorderSide(color: scheme.primary, width: 1.5)),
               ),
-              child: ElevatedButton.icon(
-                onPressed: _launching ? null : _openMaps,
-                icon: _launching
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.directions_rounded, color: Colors.white),
-                label: const Text(
-                  'Get Directions',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
+              child: _launching
+                  ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: scheme.primary))
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.satellite_alt_rounded, size: 20),
+                        SizedBox(width: 12),
+                        Text('INITIATE ROUTING [MAPS]', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.0)),
+                      ],
+                    ),
             ),
 
           if (!beacon.hasLocation)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
+                color: const Color(0xFF161616),
+                border: Border.all(color: const Color(0xFFFF1744).withValues(alpha: 0.5)),
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  Icon(Icons.location_off, color: scheme.error),
-                  const SizedBox(width: 12),
+                  Icon(Icons.gps_off_rounded, color: Color(0xFFFF1744)),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      'No GPS coordinates available for this person.',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
+                      'NO TELEMETRY DATA. TARGET LOCATION UNKNOWN.',
+                      style: TextStyle(fontFamily: 'monospace', color: Colors.white54, fontSize: 11, letterSpacing: 1.0),
                     ),
                   ),
                 ],
               ),
             ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.5),
-              ),
+          FilledButton(
+            onPressed: _markRescued,
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
-            child: OutlinedButton.icon(
-              onPressed: _markRescued,
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Mark as Rescued'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                foregroundColor: const Color(0xFF4CAF50),
-                side: BorderSide.none,
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.verified_user_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('CONFIRM TARGET SECURED', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.0)),
+              ],
             ),
           ),
-        ],
-      ),
         ],
       ),
     );
@@ -351,19 +284,15 @@ class _RescuerMapScreenState extends State<RescuerMapScreen> {
     final now = DateTime.now();
     final diff = now.difference(dt);
 
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inMinutes < 1) return 'JUST NOW';
+    if (diff.inMinutes < 60) return 'T-MINUS ${diff.inMinutes}M';
+    if (diff.inHours < 24) return 'T-MINUS ${diff.inHours}H';
     return '${dt.day}/${dt.month} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.icon, required this.label, required this.value});
 
   final IconData icon;
   final String label;
@@ -371,21 +300,21 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 10),
+          Icon(icon, size: 16, color: scheme.primary.withValues(alpha: 0.5)),
+          const SizedBox(width: 16),
           SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
+            width: 70,
+            child: Text(label, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white54, letterSpacing: 1.0)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13)),
+            child: Text(value, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.white)),
           ),
         ],
       ),

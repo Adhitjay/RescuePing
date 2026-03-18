@@ -36,127 +36,127 @@ class _ChatScreenState extends State<ChatScreen> {
     final connected = state.peers.where((p) => p.isConnected).length;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0A),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 40),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ClipRRect(
+                color: scheme.primary.withValues(alpha: 0.1),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
                 borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.cover,
-                ),
               ),
+              child: Icon(Icons.satellite_alt_rounded, color: scheme.primary, size: 18),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('RescuePing Chat'),
+                const Text(
+                  'COMMS_LINK',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2.0),
+                ),
                 Text(
-                  '$connected peers connected • TTL ${state.meshHopLimit}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  'UPLINK: $connected NODES • TTL: ${state.meshHopLimit}',
+                  style: TextStyle(
+                    color: scheme.primary.withValues(alpha: 0.7),
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ],
             ),
           ],
         ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: scheme.primary.withValues(alpha: 0.2), height: 1.0),
+        ),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF111E36),
-                    scheme.surface,
-                    scheme.surface,
+          Expanded(
+            child: messages.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.terminal_rounded, size: 48, color: scheme.primary.withValues(alpha: 0.2)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'NO TRANSMISSIONS DETECTED',
+                          style: TextStyle(color: scheme.primary.withValues(alpha: 0.4), fontFamily: 'monospace', letterSpacing: 1.5, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    reverse: true,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final m = messages[index];
+                      // MessageBubble was styled in the previous step
+                      return MessageBubble(message: m);
+                    },
+                  ),
+          ),
+          
+          // Terminal Input Area
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF121212),
+              border: Border(top: BorderSide(color: scheme.primary.withValues(alpha: 0.2))),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      '>',
+                      style: TextStyle(color: scheme.primary, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _send(),
+                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Transmit payload...',
+                          hintStyle: const TextStyle(color: Colors.white24, fontFamily: 'monospace'),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.1),
+                        border: Border.all(color: scheme.primary.withValues(alpha: 0.5)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
+                        onPressed: _send,
+                        icon: Icon(Icons.send_rounded, color: scheme.primary, size: 20),
+                        tooltip: 'TX DATA',
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: messages.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No messages yet.',
-                          style: TextStyle(color: scheme.onSurfaceVariant),
-                        ),
-                      )
-                    : ListView.builder(
-                        reverse: true,
-                        padding: const EdgeInsets.all(12),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final m = messages[index];
-                          return MessageBubble(message: m);
-                        },
-                      ),
-              ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          decoration: InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: scheme.primary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: scheme.primary.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          onPressed: _send,
-                          icon: const Icon(Icons.send_rounded, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
